@@ -21,7 +21,7 @@ def setup():
 
 model, store, chunks = setup()
 
-query = st.text_input("💬 Ask something about the document", placeholder="e.g. What projects has Aryan built?")
+query = st.text_input("💬 Ask something about the document", placeholder="e.g. What projects has Samarthya built?")
 
 if query:
     k = min(3, len(chunks))
