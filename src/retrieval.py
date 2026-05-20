@@ -4,18 +4,22 @@ import numpy as np
 class VectorStore:
     def __init__(self, embeddings, chunks):
         self.chunks = chunks
-        dimension = embeddings.shape[1]
-        # Normalize embeddings for cosine similarity
+        embeddings = np.array(embeddings).astype(np.float32)
+        # Normalize for cosine similarity
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-        normalized = embeddings / (norms + 1e-10)
-        self.index = faiss.IndexFlatIP(normalized.shape[1])  # Inner product = cosine similarity
-        self.index.add(normalized.astype(np.float32))
+        norms = np.where(norms == 0, 1, norms)
+        normalized = embeddings / norms
+        dimension = normalized.shape[1]
+        self.index = faiss.IndexFlatIP(dimension)
+        self.index.add(normalized)
 
-    def search(self, query_embedding, k=5):
-        # Normalize query embedding
+    def search(self, query_embedding, k=3):
+        query_embedding = np.array(query_embedding).astype(np.float32)
+        # Normalize query
         norm = np.linalg.norm(query_embedding)
-        normalized_query = query_embedding / (norm + 1e-10)
-        D, I = self.index.search(normalized_query.astype(np.float32), k)
+        if norm > 0:
+            query_embedding = query_embedding / norm
+        D, I = self.index.search(query_embedding, k)
         results = []
         for score, idx in zip(D[0], I[0]):
             if idx < len(self.chunks):
