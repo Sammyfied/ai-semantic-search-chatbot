@@ -1,33 +1,34 @@
 import streamlit as st
-from src.loader import load_pdf
+from src.loader import load_pdf, chunk_text
 from src.embedding import create_embeddings
+from src.retrieval import VectorStore
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
-st.title("AI Resume Chatbot (Semantic Search)")
+st.set_page_config(page_title="AI Semantic Search Chatbot", page_icon="🔍")
+st.title("🔍 AI Semantic Search Chatbot")
+st.caption("Ask any question about the document — powered by vector embeddings")
 
 pdf_path = "data/notes.pdf"
 
-text = load_pdf(pdf_path)
+@st.cache_resource
+def setup():
+    text = load_pdf(pdf_path)
+    chunks = chunk_text(text, chunk_size=300, overlap=50)
+    embeddings = create_embeddings(chunks)
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    store = VectorStore(embeddings, chunks)
+    return model, store, chunks
 
-chunks = [chunk for chunk in text.split("\n") if chunk.strip() != ""]
+model, store, chunks = setup()
 
-embeddings = create_embeddings(chunks)
-
-model = SentenceTransformer("all-MiniLM-L6-v2")
-
-query = st.text_input("Ask something about the document")
+query = st.text_input("💬 Ask something about the document", placeholder="e.g. What projects has the applicant built?")
 
 if query:
-
     query_embedding = model.encode([query])
-
-    similarities = np.dot(embeddings, query_embedding.T).flatten()
-
-    top_k = 3
-    top_indices = similarities.argsort()[-top_k:][::-1]
+    results = store.search(np.array(query_embedding), k=3)
 
     st.subheader("Top Relevant Results")
-
-    for i in top_indices:
-        st.write(chunks[i])
+    for i, result in enumerate(results):
+        with st.expander(f"Result {i+1} — relevance score: {result['score']:.2f}"):
+            st.write(result["chunk"])
