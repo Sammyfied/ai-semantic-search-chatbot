@@ -3,15 +3,18 @@ import re
 
 def load_pdf(path):
     reader = PdfReader(path)
-    text = ""
+    pages_text = []
     for page in reader.pages:
-        extracted = page.extract_text()
+        extracted = page.extract_text(extraction_mode="layout")
         if extracted:
-            text += extracted + "\n"
+            pages_text.append(extracted)
+    text = "\n".join(pages_text)
+    # Fix words split by newlines (common in PDFs)
+    text = re.sub(r'(?<=[a-z,])\n(?=[a-z])', ' ', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
     return text
 
 def chunk_text(text, chunk_size=200, overlap=30):
-    # Split on known section headers from the document
     section_headers = [
         "Personal Information",
         "Professional Summary",
@@ -27,36 +30,31 @@ def chunk_text(text, chunk_size=200, overlap=30):
         "References"
     ]
 
-    # Build regex pattern from headers
     pattern = '(' + '|'.join(re.escape(h) for h in section_headers) + ')'
     parts = re.split(pattern, text)
 
-    # Pair each header with its content
     chunks = []
     i = 0
     while i < len(parts):
         part = parts[i].strip()
         if part in section_headers:
-            # Combine header with its content
             content = parts[i + 1].strip() if i + 1 < len(parts) else ""
             combined = part + "\n" + content
-            # If combined is too long, split further
             words = combined.split()
             if len(words) <= chunk_size:
                 chunks.append(combined)
             else:
                 j = 0
                 while j < len(words):
-                    chunk = " ".join(words[j:j + chunk_size])
+                    chunk = part + " (continued): " + " ".join(words[j:j + chunk_size])
                     chunks.append(chunk)
                     j += chunk_size - overlap
             i += 2
         else:
-            if part:
+            if part and len(part) > 20:
                 chunks.append(part)
             i += 1
 
-    # Fallback
     if len(chunks) <= 1:
         words = text.split()
         chunks = []
