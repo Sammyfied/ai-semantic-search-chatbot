@@ -14,7 +14,7 @@ pdf_path = "data/notes.pdf"
 @st.cache_resource
 def setup():
     text = load_pdf(pdf_path)
-    chunks = chunk_text(text, chunk_size=300, overlap=50)
+    chunks = chunk_text(text, chunk_size=100, overlap=20)
     embeddings = create_embeddings(chunks)
     model = SentenceTransformer("all-MiniLM-L6-v2")
     store = VectorStore(embeddings, chunks)
@@ -25,10 +25,18 @@ model, store, chunks = setup()
 query = st.text_input("💬 Ask something about the document", placeholder="e.g. What projects has the applicant built?")
 
 if query:
+    # Don't search for more results than chunks available
+    k = min(3, len(chunks))
     query_embedding = model.encode([query])
-    results = store.search(np.array(query_embedding), k=3)
+    results = store.search(np.array(query_embedding), k=k)
+
+    # Filter out invalid results
+    valid_results = [r for r in results if r["score"] > 0]
 
     st.subheader("Top Relevant Results")
-    for i, result in enumerate(results):
-        with st.expander(f"Result {i+1} — relevance score: {result['score']:.2f}"):
-            st.write(result["chunk"])
+    if valid_results:
+        for i, result in enumerate(valid_results):
+            with st.expander(f"Result {i+1} — relevance score: {result['score']:.2f}"):
+                st.write(result["chunk"])
+    else:
+        st.info("No relevant results found. Try rephrasing your question.")
