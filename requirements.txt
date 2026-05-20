@@ -3,4 +3,3 @@ sentence-transformers
 faiss-cpu
 pypdf
 numpy
-google-generativeai
