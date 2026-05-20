@@ -42,7 +42,7 @@ if query:
 
             # Step 2 — send to Gemini
             genai.configure(api_key=api_key)
-            gemini = genai.GenerativeModel("gemini-1.5-flash-8b")
+            gemini = genai.GenerativeModel("gemini-pro")
 
             prompt = f"""You are a helpful assistant. Answer the user's question based ONLY on the document context provided below.
 If the answer is not in the context, say "I couldn't find that information in the document."
