@@ -14,7 +14,7 @@ pdf_path = "data/notes.pdf"
 @st.cache_resource
 def setup():
     text = load_pdf(pdf_path)
-    chunks = chunk_text(text, chunk_size=100, overlap=20)
+    chunks = chunk_text(text, chunk_size=200, overlap=30)
     embeddings = create_embeddings(chunks)
     model = SentenceTransformer("all-MiniLM-L6-v2")
     store = VectorStore(embeddings, chunks)
