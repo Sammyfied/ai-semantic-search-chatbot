@@ -11,10 +11,10 @@ st.caption("Ask any question about the document — powered by vector embeddings
 
 pdf_path = "data/notes.pdf"
 
-@st.cache_resource
+@st.cache_resource(ttl=300)
 def setup():
     text = load_pdf(pdf_path)
-    chunks = chunk_text(text, chunk_size=200, overlap=30)
+    chunks = chunk_text(text)
     embeddings = create_embeddings(chunks)
     model = SentenceTransformer("all-MiniLM-L6-v2")
     store = VectorStore(embeddings, chunks)
@@ -22,15 +22,12 @@ def setup():
 
 model, store, chunks = setup()
 
-query = st.text_input("💬 Ask something about the document", placeholder="e.g. What projects has the applicant built?")
+query = st.text_input("💬 Ask something about the document", placeholder="e.g. What projects has Aryan built?")
 
 if query:
-    # Don't search for more results than chunks available
     k = min(3, len(chunks))
     query_embedding = model.encode([query])
     results = store.search(np.array(query_embedding), k=k)
-
-    # Filter out invalid results
     valid_results = [r for r in results if r["score"] > 0]
 
     st.subheader("Top Relevant Results")
