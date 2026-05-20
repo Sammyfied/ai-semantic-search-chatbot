@@ -11,7 +11,7 @@ st.caption("Ask any question about the document — powered by vector embeddings
 
 pdf_path = "data/notes.pdf"
 
-@st.cache_resource(ttl=300)
+# No caching — always reload fresh
 def setup():
     text = load_pdf(pdf_path)
     chunks = chunk_text(text)
